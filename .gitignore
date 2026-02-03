@@ -1,0 +1,25 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+
+# --- Virtual env ---
+.venv/
+venv/
+qenv/
+fqa-venv/
+
+# --- Jupyter ---
+.ipynb_checkpoints/
+
+# --- OS ---
+.DS_Store
+
+# --- Outputs ---
+# Keep figures tracked on GitHub, ignore everything else in outputs
+outputs/*
+!outputs/figures/
+!outputs/figures/**
+
