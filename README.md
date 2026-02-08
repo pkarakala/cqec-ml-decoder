@@ -1,6 +1,6 @@
 # Continuous Quantum Error Correction with Machine Learning Decoders
 
-**Authors:** Pranav Reddy (preddy@ucsb.edu)
+**Authors:** Pranav Reddy (preddy@ucsb.edu) Clark Enge (clarkenge@ucsb.edu)
 
 A research project exploring machine learning approaches to continuous quantum error correction, comparing data-driven decoders against principled baselines on a 3-qubit repetition code with realistic time-dependent dynamics.
 
