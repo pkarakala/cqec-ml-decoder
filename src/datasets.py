@@ -1,6 +1,6 @@
 import numpy as np
 from .sim_measurement import generate_dataset
-
+from .sim_hamiltonian import generate_dataset_hamiltonian
 
 
 # ─── Windowing ────────────────────────────────────────────────
@@ -48,7 +48,7 @@ def create_windows(trajectory: dict, window_size: int = 20) -> dict:
     return {"X": X, "y": y}
 
 
-# ─── Train / Test Split ───────────────────────────────────────
+# ─── Train / Test Split (Phase 1) ─────────────────────────────
 # We split at the TRAJECTORY level, not the window level.
 # This is critical: if we split windows from the same trajectory
 # into train and test, the model could memorize the noise pattern
@@ -67,7 +67,7 @@ def build_train_test(
     seed: int = 42
 ) -> dict:
     """
-    End-to-end pipeline: simulate → window → split.
+    End-to-end pipeline for Phase 1: simulate → window → split.
 
     Returns:
         - X_train, y_train: training inputs and labels
@@ -128,4 +128,91 @@ def build_train_test(
         "X_test":  X_test,
         "y_test":  y_test,
         "params":  params,
+    }
+
+
+# ─── Train / Test Split (Phase 2 with Hamiltonian) ───────────
+def build_train_test_hamiltonian(
+    n_trajectories: int = 1000,
+    T: int = 200,
+    window_size: int = 20,
+    p_flip: float = 0.01,
+    meas_strength: float = 1.0,
+    noise_std: float = 1.0,
+    drive_amplitude: float = 0.0,
+    drive_frequency: float = 1.0,
+    drift_rate: float = 0.0,
+    backaction_strength: float = 0.0,
+    test_fraction: float = 0.2,
+    seed: int = 42
+) -> dict:
+    """
+    End-to-end pipeline for Phase 2: simulate with Hamiltonian → window → split.
+
+    Same structure as build_train_test but uses generate_dataset_hamiltonian
+    and logs the additional dynamics parameters.
+    """
+    # ── Step 1: generate all trajectories with Hamiltonian ──────
+    dataset = generate_dataset_hamiltonian(
+        n_trajectories=n_trajectories,
+        T=T,
+        p_flip=p_flip,
+        meas_strength=meas_strength,
+        noise_std=noise_std,
+        drive_amplitude=drive_amplitude,
+        drive_frequency=drive_frequency,
+        drift_rate=drift_rate,
+        backaction_strength=backaction_strength,
+        seed=seed
+    )
+
+    # ── Step 2: figure out the split index ──────────────────────
+    n_test = int(n_trajectories * test_fraction)
+    n_train = n_trajectories - n_test
+
+    # ── Step 3: window each trajectory separately ──────────────
+    train_X, train_y = [], []
+    test_X,  test_y  = [], []
+
+    for i, traj in enumerate(dataset):
+        windowed = create_windows(traj, window_size=window_size)
+
+        if i < n_train:
+            train_X.append(windowed["X"])
+            train_y.append(windowed["y"])
+        else:
+            test_X.append(windowed["X"])
+            test_y.append(windowed["y"])
+
+    # ── Step 4: concatenate all trajectories into single arrays ─
+    X_train = np.concatenate(train_X, axis=0)
+    y_train = np.concatenate(train_y, axis=0)
+    X_test  = np.concatenate(test_X,  axis=0)
+    y_test  = np.concatenate(test_y,  axis=0)
+
+    # ── Step 5: log what we used (with Hamiltonian params) ─────
+    params = {
+        "n_trajectories":     n_trajectories,
+        "n_train":            n_train,
+        "n_test":             n_test,
+        "T":                  T,
+        "window_size":        window_size,
+        "p_flip":             p_flip,
+        "meas_strength":      meas_strength,
+        "noise_std":          noise_std,
+        "drive_amplitude":    drive_amplitude,
+        "drive_frequency":    drive_frequency,
+        "drift_rate":         drift_rate,
+        "backaction_strength": backaction_strength,
+        "test_fraction":      test_fraction,
+        "seed":               seed,
+    }
+
+    return {
+        "X_train": X_train,
+        "y_train": y_train,
+        "X_test":  X_test,
+        "y_test":  y_test,
+        "params":  params,
+        "dataset": dataset,  # Also return raw trajectories for latency calculation
     }
