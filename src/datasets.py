@@ -316,3 +316,129 @@ def build_train_test_nonideal(
         "params":  params,
         "dataset": dataset,
     }
+
+
+# ─── Train / Test Split (Phase 4 with Drifting Non-Idealities) ────────
+def build_train_test_drifting(
+    n_trajectories: int = 1000,
+    T: int = 1000,
+    window_size: int = 20,
+    p_flip: float = 0.01,
+    meas_strength: float = 1.0,
+    noise_std: float = 1.0,
+    drive_amplitude: float = 0.0,
+    drive_frequency: float = 1.0,
+    drift_rate: float = 0.0,
+    backaction_strength: float = 0.0,
+    colored_noise_alpha_start: float = 0.0,
+    colored_noise_alpha_end: float = 0.0,
+    transient_amplitude_start: float = 0.0,
+    transient_amplitude_end: float = 0.0,
+    transient_decay: float = 0.1,
+    random_walk_strength_start: float = 0.0,
+    random_walk_strength_end: float = 0.0,
+    drift_type: str = 'linear',
+    drift_period: float = 1.0,
+    test_fraction: float = 0.2,
+    seed: int = 42
+) -> dict:
+    """
+    End-to-end pipeline for Phase 4: simulate with drifting non-idealities → window → split.
+
+    Key difference from Phase 3: non-ideality parameters drift WITHIN each trajectory,
+    creating a challenging scenario for static decoders.
+    
+    Returns same structure as Phase 3 but with drifting parameters logged.
+    """
+    from .sim_drifting import generate_dataset_drifting
+    
+    # ── Step 1: generate all trajectories with drifting non-idealities ──
+    dataset = generate_dataset_drifting(
+        n_trajectories=n_trajectories,
+        T=T,
+        p_flip=p_flip,
+        meas_strength=meas_strength,
+        noise_std=noise_std,
+        drive_amplitude=drive_amplitude,
+        drive_frequency=drive_frequency,
+        drift_rate=drift_rate,
+        backaction_strength=backaction_strength,
+        colored_noise_alpha_start=colored_noise_alpha_start,
+        colored_noise_alpha_end=colored_noise_alpha_end,
+        transient_amplitude_start=transient_amplitude_start,
+        transient_amplitude_end=transient_amplitude_end,
+        transient_decay=transient_decay,
+        random_walk_strength_start=random_walk_strength_start,
+        random_walk_strength_end=random_walk_strength_end,
+        drift_type=drift_type,
+        drift_period=drift_period,
+        seed=seed
+    )
+
+    # ── Step 2: figure out the split index ──────────────────────
+    n_test = int(n_trajectories * test_fraction)
+    n_train = n_trajectories - n_test
+
+    # ── Step 3: window each trajectory separately ──────────────
+    # Note: For Phase 4, we need to handle the different field name
+    train_X, train_y = [], []
+    test_X,  test_y  = [], []
+
+    for i, traj in enumerate(dataset):
+        # Phase 4 uses 'error_state' instead of 'error_labels'
+        # Create a compatible dict for windowing
+        traj_windowed = {
+            'r1': traj['r1'],
+            'r2': traj['r2'],
+            'error_labels': traj['error_state']  # map to expected field name
+        }
+        windowed = create_windows(traj_windowed, window_size=window_size)
+
+        if i < n_train:
+            train_X.append(windowed["X"])
+            train_y.append(windowed["y"])
+        else:
+            test_X.append(windowed["X"])
+            test_y.append(windowed["y"])
+
+    # ── Step 4: concatenate all trajectories into single arrays ─
+    X_train = np.concatenate(train_X, axis=0)
+    y_train = np.concatenate(train_y, axis=0)
+    X_test  = np.concatenate(test_X,  axis=0)
+    y_test  = np.concatenate(test_y,  axis=0)
+
+    # ── Step 5: log what we used (with drifting params) ────────
+    params = {
+        "n_trajectories":              n_trajectories,
+        "n_train":                     n_train,
+        "n_test":                      n_test,
+        "T":                           T,
+        "window_size":                 window_size,
+        "p_flip":                      p_flip,
+        "meas_strength":               meas_strength,
+        "noise_std":                   noise_std,
+        "drive_amplitude":             drive_amplitude,
+        "drive_frequency":             drive_frequency,
+        "drift_rate":                  drift_rate,
+        "backaction_strength":         backaction_strength,
+        "colored_noise_alpha_start":   colored_noise_alpha_start,
+        "colored_noise_alpha_end":     colored_noise_alpha_end,
+        "transient_amplitude_start":   transient_amplitude_start,
+        "transient_amplitude_end":     transient_amplitude_end,
+        "transient_decay":             transient_decay,
+        "random_walk_strength_start":  random_walk_strength_start,
+        "random_walk_strength_end":    random_walk_strength_end,
+        "drift_type":                  drift_type,
+        "drift_period":                drift_period,
+        "test_fraction":               test_fraction,
+        "seed":                        seed,
+    }
+
+    return {
+        "X_train": X_train,
+        "y_train": y_train,
+        "X_test":  X_test,
+        "y_test":  y_test,
+        "params":  params,
+        "dataset": dataset,
+    }
