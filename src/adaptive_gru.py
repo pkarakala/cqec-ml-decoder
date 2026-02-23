@@ -5,12 +5,15 @@ Implements a GRU decoder that updates its weights during inference using
 exponential moving average (EMA) updates. This allows the decoder to adapt
 to drifting non-idealities in real-time.
 
-Key idea:
-- Static GRU: trained once, frozen weights during inference
-- Adaptive GRU: continues learning during inference with small learning rate
-  
-The adaptive GRU maintains a running estimate of the loss gradient and
-updates weights using EMA to smooth out noisy gradients from single samples.
+Three adaptation modes:
+1. Pure pseudo-label: Uses high-confidence predictions as labels (self-training).
+   Fails under heavy drift because confident-but-wrong predictions poison learning.
+2. Fully supervised: Uses true labels at every step (oracle, upper bound).
+3. Hybrid (periodic supervision): True labels injected every N steps, pseudo-labels
+   in between. Models realistic QEC where periodic recalibration is available.
+
+Key finding: Pure self-training fails because of confident wrong predictions,
+but periodic recalibration + online adaptation maintains accuracy under drift.
 """
 
 import numpy as np
@@ -145,20 +148,30 @@ class AdaptiveGRUDecoder(nn.Module):
         self,
         X: np.ndarray,
         y_true: np.ndarray | None = None,
-        reset_ema: bool = True
+        reset_ema: bool = True,
+        supervised_every: int = 0
     ) -> tuple[np.ndarray, dict]:
         """
         Predict with online adaptation.
-        
+
         Parameters
         ----------
         X : np.ndarray
             Input windows (n_samples, window_size, 2)
         y_true : np.ndarray or None
-            True labels (if available for supervised adaptation)
+            True labels. Used for:
+            - Full supervised adaptation if supervised_every == 0 and y_true is provided
+            - Periodic supervision if supervised_every > 0 (true label injected every N steps)
+            - Pure pseudo-label mode if y_true is None
         reset_ema : bool
             Whether to reset EMA buffers before prediction
-        
+        supervised_every : int
+            If > 0, inject true labels every N steps (hybrid mode).
+            Requires y_true to be provided.
+            If 0, behavior depends on y_true:
+              - y_true provided: fully supervised adaptation (every step)
+              - y_true is None: pure pseudo-label adaptation
+
         Returns
         -------
         predictions : np.ndarray
@@ -167,20 +180,25 @@ class AdaptiveGRUDecoder(nn.Module):
             Tracking information:
             - 'confidences': prediction confidence at each step
             - 'adapted': whether adaptation occurred at each step
+            - 'supervised': whether true label was used at each step
         """
+        if supervised_every > 0 and y_true is None:
+            raise ValueError("supervised_every > 0 requires y_true to be provided")
+
         if reset_ema:
             self.ema_grads = None
             self.update_count = 0
-        
+
         self.train()  # enable gradient computation
-        
+
         predictions = []
         confidences = []
         adapted = []
-        
+        supervised = []
+
         X_tensor = torch.tensor(X, dtype=torch.float32)
         y_tensor = torch.tensor(y_true, dtype=torch.long) if y_true is not None else None
-        
+
         for i in range(len(X)):
             # Forward pass
             x_i = X_tensor[i:i+1]
@@ -188,25 +206,37 @@ class AdaptiveGRUDecoder(nn.Module):
                 logits = self.forward(x_i)
                 probs = torch.softmax(logits, dim=1)
                 confidence, pred = probs.max(dim=1)
-            
+
             predictions.append(pred.item())
             confidences.append(confidence.item())
-            
+
+            # Determine if this step uses true labels
+            use_true_label = False
+            if y_tensor is not None:
+                if supervised_every == 0:
+                    # Fully supervised mode
+                    use_true_label = True
+                elif (i + 1) % supervised_every == 0:
+                    # Periodic supervision: inject true label every N steps
+                    use_true_label = True
+
             # Adaptation step
-            y_i = y_tensor[i:i+1] if y_tensor is not None else None
-            
+            y_i = y_tensor[i:i+1] if use_true_label else None
+
             # Check if we'll actually adapt
             will_adapt = False
-            if y_i is not None or confidence.item() >= self.confidence_threshold:
+            if use_true_label or confidence.item() >= self.confidence_threshold:
                 if (self.update_count + 1) % self.adapt_every == 0:
                     will_adapt = True
-            
+
             self.adapt_step(x_i, logits, y_i)
             adapted.append(will_adapt)
-        
+            supervised.append(use_true_label)
+
         return np.array(predictions), {
             'confidences': np.array(confidences),
-            'adapted': np.array(adapted)
+            'adapted': np.array(adapted),
+            'supervised': np.array(supervised)
         }
 
 

@@ -394,18 +394,23 @@ def test_adaptive_gru_adapt_every():
 def test_adaptive_gru_predict_adaptive():
     """Test 9.1: predict_adaptive returns correct shapes."""
     model = AdaptiveGRUDecoder(hidden_size=32, adapt_lr=0.001)
-    
+
     X = np.random.randn(50, 20, 2)
     y = np.random.randint(0, 4, 50)
-    
+
     preds, history = model.predict_adaptive(X, y, reset_ema=True)
-    
+
     assert preds.shape == (50,)
     assert 'confidences' in history
     assert 'adapted' in history
+    assert 'supervised' in history
     assert history['confidences'].shape == (50,)
     assert history['adapted'].shape == (50,)
-    
+    assert history['supervised'].shape == (50,)
+
+    # Fully supervised: all steps should use true labels
+    assert history['supervised'].all(), "Fully supervised mode should use true labels at every step"
+
     print("✓ Test 9.1 passed: predict_adaptive interface correct")
 
 
@@ -458,6 +463,98 @@ def test_train_adaptive_gru():
     assert len(result['history']['val_acc']) == 5
     
     print("✓ Test 10.1 passed: training pipeline works")
+
+# ═══════════════════════════════════════════════════════════════
+# Test Group 9b: Hybrid Supervision Mode
+# ═══════════════════════════════════════════════════════════════
+
+def test_hybrid_supervision_periodic_labels():
+    """Test 9.3: supervised_every injects true labels at correct intervals."""
+    model = AdaptiveGRUDecoder(hidden_size=32, adapt_lr=0.001)
+
+    X = np.random.randn(100, 20, 2)
+    y = np.random.randint(0, 4, 100)
+
+    preds, history = model.predict_adaptive(
+        X, y, reset_ema=True, supervised_every=10
+    )
+
+    assert preds.shape == (100,)
+    assert history['supervised'].shape == (100,)
+
+    # Every 10th step (index 9, 19, 29, ...) should be supervised
+    for i in range(100):
+        expected = ((i + 1) % 10 == 0)
+        assert history['supervised'][i] == expected, \
+            f"Step {i}: expected supervised={expected}, got {history['supervised'][i]}"
+
+    # Exactly 10 supervised steps out of 100
+    assert history['supervised'].sum() == 10
+
+    print("✓ Test 9.3 passed: periodic supervision at correct intervals")
+
+
+def test_hybrid_supervision_requires_labels():
+    """Test 9.4: supervised_every > 0 without y_true raises ValueError."""
+    model = AdaptiveGRUDecoder(hidden_size=32, adapt_lr=0.001)
+
+    X = np.random.randn(20, 20, 2)
+
+    try:
+        model.predict_adaptive(X, y_true=None, supervised_every=10)
+        assert False, "Should have raised ValueError"
+    except ValueError:
+        pass
+
+    print("✓ Test 9.4 passed: supervised_every requires y_true")
+
+
+def test_pseudo_label_only_mode():
+    """Test 9.5: Pure pseudo-label mode (no y_true) uses no true labels."""
+    model = AdaptiveGRUDecoder(hidden_size=32, adapt_lr=0.001)
+
+    X = np.random.randn(50, 20, 2)
+
+    preds, history = model.predict_adaptive(X, y_true=None, reset_ema=True)
+
+    assert preds.shape == (50,)
+    assert not history['supervised'].any(), "Pseudo-label mode should never use true labels"
+
+    print("✓ Test 9.5 passed: pseudo-label mode uses no true labels")
+
+
+def test_hybrid_vs_pseudo_label_divergence():
+    """Test 9.6: Hybrid supervision produces different predictions than pseudo-label only."""
+    torch.manual_seed(42)
+    np.random.seed(42)
+
+    X = np.random.randn(200, 20, 2).astype(np.float32)
+    y = np.random.randint(0, 4, 200)
+
+    # Train a small model first
+    model_pseudo = AdaptiveGRUDecoder(hidden_size=32, adapt_lr=0.001, confidence_threshold=0.5)
+    model_hybrid = AdaptiveGRUDecoder(hidden_size=32, adapt_lr=0.001, confidence_threshold=0.5)
+
+    # Copy weights so they start identical
+    model_hybrid.load_state_dict(model_pseudo.state_dict())
+
+    # Pseudo-label only
+    preds_pseudo, _ = model_pseudo.predict_adaptive(X, y_true=None, reset_ema=True)
+
+    # Hybrid with periodic supervision
+    preds_hybrid, hist_hybrid = model_hybrid.predict_adaptive(
+        X, y_true=y, reset_ema=True, supervised_every=20
+    )
+
+    # They should diverge (not be identical) because hybrid gets true labels
+    # With 200 samples and supervision every 20, there are 10 supervised steps
+    assert not np.array_equal(preds_pseudo, preds_hybrid), \
+        "Hybrid and pseudo-label predictions should diverge"
+
+    print("✓ Test 9.6 passed: hybrid supervision diverges from pseudo-label only")
+
+
+
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -538,6 +635,13 @@ if __name__ == "__main__":
     print("\n[Group 9] Adaptive GRU - Prediction Interface")
     test_adaptive_gru_predict_adaptive()
     test_adaptive_gru_reset_ema()
+    
+    # Group 9b: Hybrid Supervision
+    print("\n[Group 9b] Hybrid Supervision Mode")
+    test_hybrid_supervision_periodic_labels()
+    test_hybrid_supervision_requires_labels()
+    test_pseudo_label_only_mode()
+    test_hybrid_vs_pseudo_label_divergence()
     
     # Group 10: Training Pipeline
     print("\n[Group 10] Training Pipeline")
