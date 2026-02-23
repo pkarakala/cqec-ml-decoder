@@ -4,22 +4,32 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+*.egg
 
 # --- Virtual env ---
 .venv/
 venv/
 qenv/
 fqa-venv/
+env/
 
 # --- Jupyter ---
 .ipynb_checkpoints/
 
 # --- OS ---
 .DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# --- IDE ---
+.vscode/
+.idea/
+*.code-workspace
 
 # --- Outputs ---
 # Keep figures tracked on GitHub, ignore everything else in outputs
 outputs/*
 !outputs/figures/
 !outputs/figures/**
-
