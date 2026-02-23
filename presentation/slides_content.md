@@ -306,7 +306,7 @@ GRU: ~96%            GRU: ~96%            GRU: ~83%            Hybrid: ___%
 1. **First adaptive ML decoder for QEC** — online learning during inference (to our knowledge)
 2. **Time-varying non-ideality simulator** — parameters drift within trajectories, not just between them
 3. **Hybrid supervision strategy** — periodic recalibration + pseudo-labels outperforms pure self-training
-4. **Comprehensive benchmark** — 5 decoders across 4 phases of increasing realism, 200+ unit tests
+4. **Comprehensive benchmark** — 5 decoders across 4 phases of increasing realism, 248 unit tests
 
 **Speaker notes:** "Phase 4 is entirely novel. Nobody has done adaptive online learning for quantum error correction. The simulator and the hybrid supervision approach are new contributions."
 
@@ -359,7 +359,8 @@ GRU: ~96%            GRU: ~96%            GRU: ~83%            Hybrid: ___%
 - Note: static and adaptive have identical training curves (difference is at inference)
 
 ### BACKUP 4 — Test Suite
-- 200+ unit tests across all phases
+- 248 unit tests across all phases
+- 25 tests — Phase 4 adaptive decoder (incl. hybrid supervision)
 - Backward compatibility: Phase 4 with no drift == Phase 3 == Phase 2 == Phase 1
 - Full reproducibility via seeded random number generators
 

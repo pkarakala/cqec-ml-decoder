@@ -688,7 +688,7 @@ contributions = [
     ("1", "First adaptive ML decoder for QEC", "Online learning during inference — nobody has done this", ACCENT_GREEN),
     ("2", "Time-varying non-ideality simulator", "Parameters drift within trajectories, not just between them", ACCENT_BLUE),
     ("3", "Hybrid supervision strategy", "Periodic recalibration + pseudo-labels beats pure self-training", ACCENT_PEACH),
-    ("4", "Comprehensive benchmark", "5 decoders × 4 phases of realism, 200+ unit tests", ACCENT_MAUVE),
+    ("4", "Comprehensive benchmark", "5 decoders × 4 phases of realism, 248 unit tests", ACCENT_MAUVE),
 ]
 
 for i, (num, title, desc, color) in enumerate(contributions):
@@ -807,7 +807,7 @@ set_slide_bg(slide)
 add_textbox(slide, 0.8, 0.4, 11, 0.8,
     "Backup: Test Suite & Reproducibility", font_size=28, color=SUBTEXT, bold=True)
 add_bullet_list(slide, 0.8, 1.5, 11, 5, [
-    "225+ unit tests across all phases:",
+    "248 unit tests across all phases:",
     "  • 44 tests — quantum operator math",
     "  • 58 tests — Phase 2 Hamiltonian simulator",
     "  • 22 tests — Bayesian filter",
