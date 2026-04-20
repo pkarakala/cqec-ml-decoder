@@ -194,11 +194,11 @@ Phase 2 — Hamiltonian dynamics (drive + drift + backaction):
 
 | Decoder | Accuracy |
 |---------|----------|
-| Threshold | `____%` |
-| Bayesian Filter | `____%` |
-| Static GRU | `____%` |
-| Adaptive (pseudo-labels) | `____%` |
-| Adaptive (hybrid, every 50) | `____%` |
+| Threshold | `70.0%` |
+| Bayesian Filter | `76.5%` |
+| Static GRU | `86.1%` |
+| Adaptive (pseudo-labels) | `78.4%` |
+| Adaptive (hybrid, every 20) | `85.7%` |
 
 **Visual:** Use `outputs/figures/phase4_decoder_comparison.png` — the bar chart.
 
@@ -216,16 +216,16 @@ Phase 2 — Hamiltonian dynamics (drive + drift + backaction):
 
 | Segment | Threshold | Bayesian | Static GRU | Pseudo-label | Hybrid |
 |---------|-----------|----------|------------|-------------|--------|
-| 1 (early, low drift) | `___%` | `___%` | `___%` | `___%` | `___%` |
-| 2 | `___%` | `___%` | `___%` | `___%` | `___%` |
-| 3 (mid) | `___%` | `___%` | `___%` | `___%` | `___%` |
-| 4 | `___%` | `___%` | `___%` | `___%` | `___%` |
-| 5 (late, high drift) | `___%` | `___%` | `___%` | `___%` | `___%` |
+| 1 (early, low drift) | `76.0%` | `90.1%` | `89.2%` | `45.8%` | `88.2%` |
+| 2 | `80.5%` | `85.9%` | `92.4%` | `20.9%` | `93.4%` |
+| 3 (mid) | `75.8%` | `75.1%` | `90.8%` | `12.2%` | `89.9%` |
+| 4 | `57.6%` | `66.1%` | `81.8%` | `19.7%` | `82.6%` |
+| 5 (late, high drift) | `60.0%` | `65.0%` | `76.0%` | `26.4%` | `73.5%` |
 
 **What to highlight:**
-- Static GRU drop from segment 1 → 5: `___` percentage points
-- Hybrid drop from segment 1 → 5: `___` percentage points
-- Gap between hybrid and static at segment 5: `___` percentage points
+- Static GRU drop from segment 1 → 5: `13.2` percentage points
+- Hybrid drop from segment 1 → 5: `14.7` percentage points
+- Gap between hybrid and static at segment 5: `−2.5` percentage points (hybrid ≈ static; both hold up, pseudo-label collapses)
 
 **Visual:** Use `outputs/figures/phase4_accuracy_over_time.png` — the line plot with all 5 decoders across temporal segments.
 
@@ -238,8 +238,8 @@ Phase 2 — Hamiltonian dynamics (drive + drift + backaction):
 **Headline:** Confident But Wrong: The Pseudo-Label Trap
 
 **Content:**
-- At segment 5, the model is ~`___`% confident on average
-- But accuracy is only ~`___`%
+- At segment 5, the model is ~`99.9`% confident on average
+- But accuracy is only ~`26.4`%
 - High confidence + wrong answer = poisoned pseudo-labels
 - The model reinforces its own mistakes → accuracy spirals down
 
@@ -262,13 +262,13 @@ Low confidence:     ⚠️ Skip    ⚠️ Skip
 
 | Supervision Rate | % Supervised | Accuracy |
 |-----------------|-------------|----------|
-| Every 10 windows | 10% | `____%` |
-| Every 20 windows | 5% | `____%` |
-| Every 50 windows | 2% | `____%` |
-| Every 100 windows | 1% | `____%` |
-| Every 200 windows | 0.5% | `____%` |
-| Every 500 windows | 0.2% | `____%` |
-| Static (no adaptation) | 0% | `____%` |
+| Every 10 windows | 10% | `86.4%` |
+| Every 20 windows | 5% | `84.2%` |
+| Every 50 windows | 2% | `80.7%` |
+| Every 100 windows | 1% | `73.6%` |
+| Every 200 windows | 0.5% | `80.9%` |
+| Every 500 windows | 0.2% | `58.3%` |
+| Static (no adaptation) | 0% | `86.1%` |
 
 **Visual:** Use `outputs/figures/phase4_robustness_drift.png` — accuracy vs supervision frequency plot.
 
@@ -287,8 +287,8 @@ Phase 1              Phase 2              Phase 3              Phase 4
 Static syndromes  →  Hamiltonian       →  Non-ideal         →  Drifting
                      dynamics              effects              parameters
                      
-GRU: ~96%            GRU: ~96%            GRU: ~83%            Hybrid: ___%
-                     Bayesian: ~94%       Bayesian: ~84%       Static: ___%
+GRU: ~96%            GRU: ~96%            GRU: ~83%            Hybrid: 85.7%
+                     Bayesian: ~94%       Bayesian: ~84%       Static: 86.1%
 
 "Ideal world"        "Add physics"        "Add hardware        "Hardware changes
                                            imperfections"       during operation"

@@ -225,8 +225,8 @@ Same architecture, same training. The adaptation parameters only affect inferenc
 code("""print(f"Training adaptive GRU...")
 print(f"  Same architecture as static GRU")
 print(f"  Adaptation parameters:")
-print(f"    adapt_lr = 0.001")
-print(f"    ema_decay = 0.7")
+print(f"    adapt_lr = 0.005")
+print(f"    ema_decay = 0.5")
 print(f"    confidence_threshold = 0.8")
 
 result_adaptive = train_adaptive_gru(
@@ -236,8 +236,8 @@ result_adaptive = train_adaptive_gru(
     batch_size=256,
     lr=0.001,
     hidden_size=64,
-    adapt_lr=0.001,
-    ema_decay=0.7,
+    adapt_lr=0.005,
+    ema_decay=0.5,
     confidence_threshold=0.8,
     seed=42
 )
@@ -326,8 +326,8 @@ print(f"Adaptive (pseudo):      {pseudo_acc:.4f}")
 print(f"  Avg confidence: {pseudo_hist['confidences'].mean():.3f}")
 print(f"  Adaptation rate: {pseudo_hist['adapted'].mean():.3f}")
 
-# Adaptive GRU — hybrid (periodic supervision every 50 windows)
-SUPERVISED_EVERY = 50
+# Adaptive GRU — hybrid (periodic supervision every 20 windows)
+SUPERVISED_EVERY = 20
 print(f"\\nAdaptive GRU (hybrid, supervised every {SUPERVISED_EVERY})...")
 hybrid_preds, hybrid_hist = adaptive_gru_hybrid.predict_adaptive(
     X_test, y_true=y_test, reset_ema=True, supervised_every=SUPERVISED_EVERY

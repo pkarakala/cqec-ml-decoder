@@ -120,6 +120,8 @@ def train_gru(
     batch_size: int = 256,
     lr: float = 0.001,
     hidden_size: int = 64,
+    dropout: float = 0.1,
+    patience: int = 0,
     seed: int = 42
 ) -> dict:
     """
@@ -133,7 +135,7 @@ def train_gru(
     np.random.seed(seed)
 
     # ── Build model, loss, optimizer ──────────────────────────
-    model     = GRUDecoder(hidden_size=hidden_size)
+    model     = GRUDecoder(hidden_size=hidden_size, dropout=dropout)
     criterion = nn.CrossEntropyLoss()          # standard for multi-class classification
     optimizer = torch.optim.Adam(model.parameters(), lr=lr)
 
@@ -145,6 +147,9 @@ def train_gru(
 
     # ── Training history tracking ─────────────────────────────
     history = {"train_loss": [], "val_loss": [], "val_acc": []}
+    best_val_acc = 0.0
+    best_state = None
+    no_improve = 0
 
     for epoch in range(epochs):
         # ── TRAINING ────────────────────────────────────────────
@@ -190,5 +195,20 @@ def train_gru(
                   f"train_loss: {avg_train_loss:.4f} | "
                   f"val_loss: {val_loss:.4f} | "
                   f"val_acc: {val_acc:.4f}")
+
+        if patience > 0:
+            if val_acc > best_val_acc:
+                best_val_acc = val_acc
+                best_state = {k: v.clone() for k, v in model.state_dict().items()}
+                no_improve = 0
+            else:
+                no_improve += 1
+                if no_improve >= patience:
+                    if (epoch + 1) % 10 != 0:
+                        print(f"  Early stopping at epoch {epoch+1} | val_acc: {val_acc:.4f}")
+                    break
+
+    if patience > 0 and best_state is not None:
+        model.load_state_dict(best_state)
 
     return {"model": model, "history": history}
