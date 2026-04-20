@@ -172,17 +172,21 @@ With colored noise, post-flip transients, and random-walk drift, all decoders de
 
 ### Phase 4 — Adaptive Decoding Under Drift
 
-Five-way comparison under drifting parameters (results pending full notebook run):
+Five-way comparison under linearly drifting non-idealities (colored-noise α 0.1→0.9, transient amplitude 0.1→1.0, random-walk strength 0.01→0.4). Training: N=100 trajectories, T=400, 20 epochs. Adaptation: `adapt_lr=0.005`, `ema_decay=0.5`, hybrid supervision every 20 windows.
 
-| Decoder | Strategy | Notes |
-|---------|----------|-------|
-| Threshold | No model | Degrades steadily with drift |
-| Bayesian Filter | Fixed parameters | Fails as parameters drift away |
-| Static GRU | Trained once, frozen | Degrades over time |
-| Adaptive GRU (pseudo-labels) | Self-training | Barely helps — confident wrong predictions poison learning |
-| Adaptive GRU (hybrid) | Periodic recalibration + pseudo-labels | Maintains accuracy under drift |
+| Decoder | Overall | Seg 1 (low drift) | Seg 5 (high drift) | Drop (pp) |
+|---------|---------|-------------------|--------------------|-----------|
+| Threshold | 70.0% | 76.0% | 60.0% | 16.0 |
+| Bayesian Filter | 76.5% | 90.1% | 65.0% | 25.1 |
+| Static GRU | **86.1%** | 89.2% | 76.0% | 13.2 |
+| Adaptive GRU (pseudo-labels) | 78.4% | 45.8% | 26.4% | 19.4 |
+| Adaptive GRU (hybrid, every 20) | 85.7% | 88.2% | 73.5% | 14.7 |
 
-The key result is the temporal segment analysis: as parameters drift from early to late in each trajectory, static decoders degrade while the hybrid adaptive GRU maintains performance. Even infrequent supervision (true labels every 50-100 windows, ~1-2% of data) provides significant improvement.
+**Headline finding — pseudo-label collapse.** Pure self-training destabilises almost immediately: the adaptive GRU stays ~99.9% confident in its own outputs while accuracy crashes to 12–26% across every segment. Confident-but-wrong pseudo-labels poison the online update and drive the network away from the correct decision boundary.
+
+**Hybrid supervision prevents collapse.** Injecting a true label every 20 windows (~5% of samples) pulls the adaptive GRU back to the static-GRU accuracy band (85.7% vs 86.1%). On this re-run the hybrid vs. static gap is tight (static edges hybrid by ~0.4pp overall, ~2.5pp at segment 5) — so the value proposition is stability, not raw accuracy gain, under the tuned aggressive adaptation setting. Future work: smarter supervision scheduling (confidence-weighted, adaptive `adapt_lr`) is the clear path to beating static.
+
+**Supervision frequency sweep.** Accuracy stays within ~6pp of the static baseline down to 1–2% true-label rate, then degrades sharply at 0.2% (every-500 windows → 58.3%). Even infrequent recalibration anchors the model.
 
 ### Figures
 
