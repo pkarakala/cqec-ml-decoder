@@ -1,5 +1,5 @@
 import numpy as np
-from .operators import ERROR_SIGNATURES
+from src.operators import ERROR_SIGNATURES
 
 
 # ─── Continuous Measurement Record Generator ─────────────────

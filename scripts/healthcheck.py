@@ -1,3 +1,8 @@
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
 from src.sim_measurement import generate_dataset
 from src.datasets import create_windows
 from src.decoders import ThresholdDecoder, GRUDecoder

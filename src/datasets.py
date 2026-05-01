@@ -1,7 +1,7 @@
 import numpy as np
-from .sim_measurement import generate_dataset
-from .sim_hamiltonian import generate_dataset_hamiltonian
-from .sim_nonideal import generate_dataset_nonideal
+from src.sim_measurement import generate_dataset
+from src.sim_hamiltonian import generate_dataset_hamiltonian
+from src.sim_nonideal import generate_dataset_nonideal
 
 
 # ─── Windowing ────────────────────────────────────────────────
@@ -350,7 +350,7 @@ def build_train_test_drifting(
     
     Returns same structure as Phase 3 but with drifting parameters logged.
     """
-    from .sim_drifting import generate_dataset_drifting
+    from src.sim_drifting import generate_dataset_drifting
     
     # ── Step 1: generate all trajectories with drifting non-idealities ──
     dataset = generate_dataset_drifting(
