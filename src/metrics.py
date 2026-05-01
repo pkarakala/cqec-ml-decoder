@@ -1,6 +1,6 @@
 import numpy as np
 import torch
-from .decoders import ThresholdDecoder, GRUDecoder
+from src.decoders import ThresholdDecoder, GRUDecoder
 
 
 
@@ -178,7 +178,7 @@ def evaluate_all(
             window_size = X_test.shape[1]
 
             # Re-predict on this single trajectory's windows
-            from .datasets import create_windows
+            from src.datasets import create_windows
             w = create_windows(traj, window_size=window_size)
 
             th_preds  = threshold.predict(w["X"])

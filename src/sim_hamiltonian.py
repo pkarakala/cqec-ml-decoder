@@ -1,5 +1,5 @@
 import numpy as np
-from .operators import S1, S2, ERRORS, ERROR_SIGNATURES, ket_0L, ket_1L
+from src.operators import S1, S2, ERRORS, ERROR_SIGNATURES, ket_0L, ket_1L
 
 
 # ─── Time-Dependent Hamiltonian Simulator ────────────────────
@@ -170,7 +170,7 @@ def test_compatibility():
     Verify that Phase 2 simulator with dynamics=0 produces the same
     output structure as Phase 1.
     """
-    from .sim_measurement import generate_trajectory as gen_phase1
+    from src.sim_measurement import generate_trajectory as gen_phase1
     
     # Generate with both simulators using same seed and no dynamics
     traj_p1 = gen_phase1(T=100, p_flip=0.01, meas_strength=1.0, noise_std=1.0, seed=42)

@@ -2,7 +2,9 @@
 
 > Can a neural network decode quantum errors better than Bayes' theorem?
 
-**Authors:** Pranav Reddy ([preddy@ucsb.edu](mailto:preddy@ucsb.edu)) · Clark Enge ([clarkenge@ucsb.edu](mailto:clarkenge@ucsb.edu))
+> **TL;DR:** ML-based decoders match or outperform Bayesian filters under realistic noise and drift, especially when model assumptions break.
+
+**Authors:** Pranav Reddy ([preddy@ucsb.edu](mailto:preddy@ucsb.edu)) · Clark Enge ([clarkenge@ucsb.edu](mailto:clarkenge@ucsb.edu)) · Aidan Mitchell ([aidanpmitchell@ucsb.edu](mailto:aidanpmitchell@ucsb.edu))
 
 ---
 
@@ -246,16 +248,21 @@ Beyond overall accuracy, we track:
 │   ├── adaptive_gru.py       # Phase 4: adaptive GRU with hybrid supervision
 │   ├── bayesian_filter.py    # Wonham filter / HMM decoder
 │   ├── metrics.py            # Accuracy, confusion matrices, detection latency
-│   ├── test_operators.py     # 44 unit tests — quantum operator math
-│   ├── test_hamiltonian.py   # 58 unit tests — Phase 2 simulator
-│   ├── test_bayesian.py      # 22 unit tests — Bayesian filter
-│   ├── test_nonideal.py      # 99 unit tests — Phase 3 simulator
-│   └── test_adaptive.py      # 25 unit tests — Phase 4 adaptive decoder + hybrid supervision
+│   ├── validate_operators.py     # 44 validation checks — quantum operator math
+│   ├── validate_hamiltonian.py   # 58 validation checks — Phase 2 simulator
+│   ├── validate_bayesian.py      # 22 validation checks — Bayesian filter
+│   ├── validate_nonideal.py      # 99 validation checks — Phase 3 simulator
+│   └── validate_adaptive.py      # 25 validation checks — Phase 4 adaptive decoder + hybrid supervision
 ├── notebooks/
 │   ├── 01_phase1_setup.ipynb
 │   ├── 02_phase2_dynamics.ipynb
 │   ├── 03_phase3_nonideal.ipynb
 │   └── 04_phase4_adaptive_decoding.ipynb
+├── tests/
+│   ├── test_datasets.py
+│   ├── test_decoders.py
+│   ├── test_simulators.py
+│   └── test_validation_layout.py
 ├── presentation/
 │   ├── adaptive_qec_slides.pptx  # Competition slide deck (22 slides)
 │   ├── slides_content.md          # Slide-by-slide content reference
@@ -263,7 +270,8 @@ Beyond overall accuracy, we track:
 ├── outputs/figures/               # Generated plots
 ├── scripts/
 │   ├── healthcheck.py             # Quick sanity check
-│   └── test_phase4_smoke.py       # Phase 4 end-to-end smoke test
+│   ├── validate_phase4_smoke.py   # Phase 4 end-to-end smoke validation
+│   └── run_phase4_rerun.py
 └── requirements.txt
 ```
 
@@ -275,12 +283,15 @@ Beyond overall accuracy, we track:
 git clone https://github.com/pkarakala/cqec-ml-decoder.git
 cd cqec-ml-decoder
 
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
 # Sanity check
-python3 scripts/healthcheck.py
+python scripts/healthcheck.py
+
+# Run tests
+python -m pytest
 
 # Run the notebooks
 jupyter notebook notebooks/01_phase1_setup.ipynb
@@ -288,19 +299,41 @@ jupyter notebook notebooks/01_phase1_setup.ipynb
 
 ### Running Tests
 
+Run lightweight unit tests (fast, deterministic):
+
 ```bash
-python3 -m src.test_operators      # 44 tests — quantum operator math
-python3 -m src.test_hamiltonian    # 58 tests — Phase 2 simulator
-python3 -m src.test_bayesian       # 22 tests — Bayesian filter
-python3 -m src.test_nonideal       # 99 tests — Phase 3 non-ideal effects
-python3 -m src.test_adaptive       # 25 tests — Phase 4 adaptive decoder + hybrid supervision
+python -m pytest
+```
+These tests check:
+
+- import structure
+- dataset windowing
+- simulator outputs
+- decoder forward passes
+
+### Running Validation Scripts
+
+These are longer, script-style checks for scientific behavior and diagnostics.
+
+```bash
+python -m src.validate_operators      # 44 checks — quantum operator math
+python -m src.validate_hamiltonian    # 58 checks — Phase 2 simulator
+python -m src.validate_bayesian       # 22 checks — Bayesian filter
+python -m src.validate_nonideal       # 99 checks — Phase 3 non-ideal effects
+python -m src.validate_adaptive       # 25 checks — Phase 4 adaptive decoder + hybrid supervision
+```
+
+### Quick Healthcheck
+
+```bash
+python scripts/healthcheck.py
 ```
 
 ---
 
 ## Dependencies
 
-Python 3.10+ · NumPy · PyTorch · SciPy · Matplotlib · Jupyter · scikit-learn · QuTiP
+Python 3.10+ · NumPy · PyTorch · SciPy · Matplotlib · Jupyter · scikit-learn
 
 See [`requirements.txt`](requirements.txt) for the full list.
 

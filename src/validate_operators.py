@@ -1,8 +1,8 @@
 import numpy as np
 import sys
-from operators import (I, X, Z, kron_list, S1, S2,
-                       ket_0L, ket_1L, E0, E1, E2, E3,
-                       ERRORS, ERROR_SIGNATURES)
+from src.operators import (I, X, Z, kron_list, S1, S2,
+                           ket_0L, ket_1L, E0, E1, E2, E3,
+                           ERRORS, ERROR_SIGNATURES)
 
 passed = 0
 failed = 0

@@ -1,5 +1,5 @@
 import numpy as np
-from .operators import ERROR_SIGNATURES
+from src.operators import ERROR_SIGNATURES
 
 
 # ─── Non-Ideal Continuous Measurement Simulator ──────────────
@@ -282,7 +282,7 @@ def test_compatibility():
     Verify that Phase 3 with all non-idealities turned off
     produces the same output as Phase 2.
     """
-    from .sim_hamiltonian import generate_trajectory_hamiltonian
+    from src.sim_hamiltonian import generate_trajectory_hamiltonian
 
     # Generate with Phase 2 and Phase 3 (non-idealities off)
     traj_p2 = generate_trajectory_hamiltonian(
