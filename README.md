@@ -2,6 +2,8 @@
 
 > Can a neural network decode quantum errors better than Bayes' theorem?
 
+> **TL;DR:** ML-based decoders match or outperform Bayesian filters under realistic noise and drift, especially when model assumptions break.
+
 **Authors:** Pranav Reddy ([preddy@ucsb.edu](mailto:preddy@ucsb.edu)) · Clark Enge ([clarkenge@ucsb.edu](mailto:clarkenge@ucsb.edu)) · Aidan Mitchell ([aidanpmitchell@ucsb.edu](mailto:aidanpmitchell@ucsb.edu))
 
 ---
@@ -281,12 +283,15 @@ Beyond overall accuracy, we track:
 git clone https://github.com/pkarakala/cqec-ml-decoder.git
 cd cqec-ml-decoder
 
-python3 -m venv .venv
+python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 
 # Sanity check
-python3 scripts/healthcheck.py
+python scripts/healthcheck.py
+
+# Run tests
+python -m pytest
 
 # Run the notebooks
 jupyter notebook notebooks/01_phase1_setup.ipynb
@@ -297,24 +302,31 @@ jupyter notebook notebooks/01_phase1_setup.ipynb
 Run lightweight unit tests (fast, deterministic):
 
 ```bash
-python3 -m pytest
+python -m pytest
 ```
 These tests check:
-- Import structure
-- Dataset windowing
-- Simulator outputs
-- Decoder forward passes
+
+- import structure
+- dataset windowing
+- simulator outputs
+- decoder forward passes
 
 ### Running Validation Scripts
 
 These are longer, script-style checks for scientific behavior and diagnostics.
 
 ```bash
-python3 -m src.validate_operators      # 44 checks — quantum operator math
-python3 -m src.validate_hamiltonian    # 58 checks — Phase 2 simulator
-python3 -m src.validate_bayesian       # 22 checks — Bayesian filter
-python3 -m src.validate_nonideal       # 99 checks — Phase 3 non-ideal effects
-python3 -m src.validate_adaptive       # 25 checks — Phase 4 adaptive decoder + hybrid supervision
+python -m src.validate_operators      # 44 checks — quantum operator math
+python -m src.validate_hamiltonian    # 58 checks — Phase 2 simulator
+python -m src.validate_bayesian       # 22 checks — Bayesian filter
+python -m src.validate_nonideal       # 99 checks — Phase 3 non-ideal effects
+python -m src.validate_adaptive       # 25 checks — Phase 4 adaptive decoder + hybrid supervision
+```
+
+### Quick Healthcheck
+
+```bash
+python scripts/healthcheck.py
 ```
 
 ---
