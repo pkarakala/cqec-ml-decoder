@@ -2,7 +2,7 @@
 
 > Can a neural network decode quantum errors better than Bayes' theorem?
 
-**Authors:** Pranav Reddy ([preddy@ucsb.edu](mailto:preddy@ucsb.edu)) · Clark Enge ([clarkenge@ucsb.edu](mailto:clarkenge@ucsb.edu))
+**Authors:** Pranav Reddy ([preddy@ucsb.edu](mailto:preddy@ucsb.edu)) · Clark Enge ([clarkenge@ucsb.edu](mailto:clarkenge@ucsb.edu)) · Aidan Mitchell ([aidanpmitchell@ucsb.edu](mailto:aidanpmitchell@ucsb.edu))
 
 ---
 
@@ -256,6 +256,11 @@ Beyond overall accuracy, we track:
 │   ├── 02_phase2_dynamics.ipynb
 │   ├── 03_phase3_nonideal.ipynb
 │   └── 04_phase4_adaptive_decoding.ipynb
+├── tests/
+│   ├── test_datasets.py
+│   ├── test_decoders.py
+│   ├── test_simulators.py
+│   └── test_validation_layout.py
 ├── presentation/
 │   ├── adaptive_qec_slides.pptx  # Competition slide deck (22 slides)
 │   ├── slides_content.md          # Slide-by-slide content reference
@@ -263,7 +268,8 @@ Beyond overall accuracy, we track:
 ├── outputs/figures/               # Generated plots
 ├── scripts/
 │   ├── healthcheck.py             # Quick sanity check
-│   └── validate_phase4_smoke.py   # Phase 4 end-to-end smoke validation
+│   ├── validate_phase4_smoke.py   # Phase 4 end-to-end smoke validation
+│   └── run_phase4_rerun.py
 └── requirements.txt
 ```
 
@@ -286,11 +292,24 @@ python3 scripts/healthcheck.py
 jupyter notebook notebooks/01_phase1_setup.ipynb
 ```
 
-### Running Validation Scripts
+### Running Tests
+
+Run lightweight unit tests (fast, deterministic):
 
 ```bash
-python3 -m pytest                  # pytest layout guard
+python3 -m pytest
+```
+These tests check:
+- Import structure
+- Dataset windowing
+- Simulator outputs
+- Decoder forward passes
 
+### Running Validation Scripts
+
+These are longer, script-style checks for scientific behavior and diagnostics.
+
+```bash
 python3 -m src.validate_operators      # 44 checks — quantum operator math
 python3 -m src.validate_hamiltonian    # 58 checks — Phase 2 simulator
 python3 -m src.validate_bayesian       # 22 checks — Bayesian filter
@@ -302,7 +321,7 @@ python3 -m src.validate_adaptive       # 25 checks — Phase 4 adaptive decoder 
 
 ## Dependencies
 
-Python 3.10+ · NumPy · PyTorch · SciPy · Matplotlib · Jupyter · scikit-learn · QuTiP
+Python 3.10+ · NumPy · PyTorch · SciPy · Matplotlib · Jupyter · scikit-learn
 
 See [`requirements.txt`](requirements.txt) for the full list.
 
