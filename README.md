@@ -246,11 +246,11 @@ Beyond overall accuracy, we track:
 │   ├── adaptive_gru.py       # Phase 4: adaptive GRU with hybrid supervision
 │   ├── bayesian_filter.py    # Wonham filter / HMM decoder
 │   ├── metrics.py            # Accuracy, confusion matrices, detection latency
-│   ├── test_operators.py     # 44 unit tests — quantum operator math
-│   ├── test_hamiltonian.py   # 58 unit tests — Phase 2 simulator
-│   ├── test_bayesian.py      # 22 unit tests — Bayesian filter
-│   ├── test_nonideal.py      # 99 unit tests — Phase 3 simulator
-│   └── test_adaptive.py      # 25 unit tests — Phase 4 adaptive decoder + hybrid supervision
+│   ├── validate_operators.py     # 44 validation checks — quantum operator math
+│   ├── validate_hamiltonian.py   # 58 validation checks — Phase 2 simulator
+│   ├── validate_bayesian.py      # 22 validation checks — Bayesian filter
+│   ├── validate_nonideal.py      # 99 validation checks — Phase 3 simulator
+│   └── validate_adaptive.py      # 25 validation checks — Phase 4 adaptive decoder + hybrid supervision
 ├── notebooks/
 │   ├── 01_phase1_setup.ipynb
 │   ├── 02_phase2_dynamics.ipynb
@@ -263,7 +263,7 @@ Beyond overall accuracy, we track:
 ├── outputs/figures/               # Generated plots
 ├── scripts/
 │   ├── healthcheck.py             # Quick sanity check
-│   └── test_phase4_smoke.py       # Phase 4 end-to-end smoke test
+│   └── validate_phase4_smoke.py   # Phase 4 end-to-end smoke validation
 └── requirements.txt
 ```
 
@@ -286,14 +286,16 @@ python3 scripts/healthcheck.py
 jupyter notebook notebooks/01_phase1_setup.ipynb
 ```
 
-### Running Tests
+### Running Validation Scripts
 
 ```bash
-python3 -m src.test_operators      # 44 tests — quantum operator math
-python3 -m src.test_hamiltonian    # 58 tests — Phase 2 simulator
-python3 -m src.test_bayesian       # 22 tests — Bayesian filter
-python3 -m src.test_nonideal       # 99 tests — Phase 3 non-ideal effects
-python3 -m src.test_adaptive       # 25 tests — Phase 4 adaptive decoder + hybrid supervision
+python3 -m pytest                  # pytest layout guard
+
+python3 -m src.validate_operators      # 44 checks — quantum operator math
+python3 -m src.validate_hamiltonian    # 58 checks — Phase 2 simulator
+python3 -m src.validate_bayesian       # 22 checks — Bayesian filter
+python3 -m src.validate_nonideal       # 99 checks — Phase 3 non-ideal effects
+python3 -m src.validate_adaptive       # 25 checks — Phase 4 adaptive decoder + hybrid supervision
 ```
 
 ---
