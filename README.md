@@ -94,7 +94,7 @@ drive_signal[t] = drive_amplitude * cos(drive_frequency * t * dt)
 r1[t] = (meas_strength_t[t] + drive_signal[t]) * s1_true + readout_noise + backaction_noise
 ```
 
-The Bayesian filter assumes static `meas_strength` and no drive — so when these dynamics kick in, it degrades. The GRU learns the dynamics directly from data.
+The Bayesian filter assumes static `meas_strength` and no drive, so these dynamics introduce model mismatch. In the recorded Phase 2 run, however, the Bayesian filter remains highly competitive and outperforms the final trained GRU; the added drive and drift can also increase signal separability.
 
 ### Phase 3 — Non-Ideal Measurement Effects
 
@@ -111,7 +111,7 @@ transient[t] = amplitude * exp(-t / decay) * (1 if flip_occurred else 0)
 random_walk[t] = random_walk[t-1] + normal(0, strength)
 ```
 
-These effects break the Bayesian filter's white noise and static parameter assumptions. The GRU learns to handle them from data.
+These effects violate the Bayesian filter's white-noise and static-parameter assumptions. On the combined Phase 3 test, the GRU performs best, but Bayesian decoding remains competitive and can outperform the GRU in some individual robustness sweeps.
 
 ### Phase 4 — Adaptive Decoding Under Drift
 
@@ -122,7 +122,7 @@ The ultimate challenge ([`src/sim_drifting.py`](src/sim_drifting.py), [`src/adap
 - **Three adaptation strategies** tested:
   1. **Static GRU** — trained once, frozen weights (baseline)
   2. **Pseudo-label adaptation** — self-training with confident predictions (fails under heavy drift)
-  3. **Hybrid adaptation** — periodic true labels + pseudo-labels in between (works!)
+  3. **Hybrid adaptation** — periodic true labels + pseudo-labels in between (modest gains with frequent recalibration)
 
 ```python
 # Phase 4: Parameters drift over time
@@ -133,11 +133,11 @@ transient_amplitude[t] = interpolate(0.1 → 1.0, t, drift_type='linear')
 # Every N windows, inject a true label (periodic recalibration)
 # In between, use high-confidence pseudo-labels
 preds, history = model.predict_adaptive(
-    X_test, y_true=y_test, supervised_every=50  # true label every 50 windows
+    X_test, y_true=y_test, supervised_every=20  # true label every 20 windows
 )
 ```
 
-Pure self-training fails because confident wrong predictions poison online learning. But periodic recalibration + online adaptation maintains accuracy under drift.
+Pure pseudo-label self-training significantly degrades performance because confident wrong predictions reinforce themselves. Hybrid recalibration can modestly improve overall accuracy when true labels are injected frequently, but it uses true test labels during inference and should be interpreted as an online recalibration setting rather than label-free deployment.
 
 ---
 
@@ -157,38 +157,45 @@ The GRU learns temporal correlations in the continuous measurement stream that s
 | Decoder | Accuracy | Notes |
 |---------|----------|-------|
 | Threshold | ~85% | No model, no adaptation |
-| Bayesian Filter | ~94% | Optimal *if* model assumptions hold |
-| GRU | **~96%** | Adapts to model mismatch |
+| Bayesian Filter | **~95%** | Strongest in this recorded run |
+| GRU | ~93% | Strong learned baseline, but does not beat Bayesian here |
 
-When drive and drift violate the Bayesian model's assumptions, the GRU maintains robustness by learning dynamics directly from data.
+Phase 2 introduces time-dependent measurement effects that mismatch the Bayesian filter's static observation model. In this parameter regime, that mismatch does not imply Bayesian degradation: Bayesian remains strongest, while the GRU remains a competitive learned baseline.
 
 ### Phase 3 — Non-Ideal Measurement Effects
 
 | Decoder | Accuracy | Notes |
 |---------|----------|-------|
-| Threshold | ~79% | Simple averaging fails with colored noise |
-| Bayesian Filter | ~84% | White noise assumption violated |
-| GRU | **~83%** | Learns temporal correlations in colored noise |
+| Threshold | ~79% | Simple averaging degrades under non-ideal effects |
+| Bayesian Filter | ~84% | Assumptions are violated, but remains competitive |
+| GRU | **~88%** | Best on the combined held-out Phase 3 test |
 
 With colored noise, post-flip transients, and random-walk drift, all decoders degrade. The Bayesian filter suffers most because its core assumptions (white noise, static parameters) are violated. The GRU learns non-ideal effects from data but needs more training data to match Phase 2 performance.
 
 ### Phase 4 — Adaptive Decoding Under Drift
 
-Five-way comparison under linearly drifting non-idealities (colored-noise α 0.1→0.9, transient amplitude 0.1→1.0, random-walk strength 0.01→0.4). Training: N=100 trajectories, T=400, 20 epochs. Adaptation: `adapt_lr=0.005`, `ema_decay=0.5`, hybrid supervision every 20 windows.
+Five-way comparison under linearly drifting non-idealities (colored-noise α 0.1→0.9, transient amplitude 0.1→1.0, random-walk strength 0.01→0.4). Training: N=200 trajectories, T=1000, 50 epochs. Adaptation: `adapt_lr=0.005`, `ema_decay=0.5`, hybrid supervision every 20 windows.
 
 | Decoder | Overall | Seg 1 (low drift) | Seg 5 (high drift) | Drop (pp) |
 |---------|---------|-------------------|--------------------|-----------|
-| Threshold | 70.0% | 76.0% | 60.0% | 16.0 |
-| Bayesian Filter | 76.5% | 90.1% | 65.0% | 25.1 |
-| Static GRU | **86.1%** | 89.2% | 76.0% | 13.2 |
-| Adaptive GRU (pseudo-labels) | 78.4% | 45.8% | 26.4% | 19.4 |
-| Adaptive GRU (hybrid, every 20) | 85.7% | 88.2% | 73.5% | 14.7 |
+| Threshold | 71.8% | 84.7% | 57.2% | 27.5 |
+| Bayesian Filter | 77.0% | 93.8% | 59.8% | 34.0 |
+| Static GRU | 81.6% | 90.2% | 70.2% | 20.0 |
+| Adaptive GRU (pseudo-labels) | 45.2% | 40.9% | 27.0% | 13.9 |
+| Adaptive GRU (hybrid, every 20) | **83.7%** | 92.8% | 70.1% | 22.7 |
 
-**Headline finding — pseudo-label collapse.** Pure self-training destabilises almost immediately: the adaptive GRU stays ~99.9% confident in its own outputs while accuracy crashes to 12–26% across every segment. Confident-but-wrong pseudo-labels poison the online update and drive the network away from the correct decision boundary.
+**Headline finding — pseudo-label degradation.** Pure self-training performs much worse than the frozen GRU (45.2% vs 81.6%) despite very high confidence. Confident-but-wrong pseudo-labels reinforce incorrect updates rather than correcting drift.
 
-**Hybrid supervision prevents collapse.** Injecting a true label every 20 windows (~5% of samples) pulls the adaptive GRU back to the static-GRU accuracy band (85.7% vs 86.1%). On this re-run the hybrid vs. static gap is tight (static edges hybrid by ~0.4pp overall, ~2.5pp at segment 5) — so the value proposition is stability, not raw accuracy gain, under the tuned aggressive adaptation setting. Future work: smarter supervision scheduling (confidence-weighted, adaptive `adapt_lr`) is the clear path to beating static.
+**Hybrid supervision gives modest gains with frequent recalibration.** Injecting a true label every 20 windows (~5% of samples) modestly improves overall accuracy over the static GRU (83.7% vs 81.6%). It does not prevent late-drift degradation: by the final segment, hybrid is roughly tied with static. Because hybrid uses true test labels during inference, it should be interpreted as online recalibration rather than label-free deployment.
 
-**Supervision frequency sweep.** Accuracy stays within ~6pp of the static baseline down to 1–2% true-label rate, then degrades sharply at 0.2% (every-500 windows → 58.3%). Even infrequent recalibration anchors the model.
+**Supervision frequency sweep.** In this run, only frequent recalibration every 10–20 windows improves over the static GRU. At 50+ windows, hybrid no longer beats the static baseline and degrades as supervision becomes sparse.
+
+### Evaluation Notes
+
+- Notebook results are seed- and parameter-dependent; model mismatch does not always degrade Bayesian performance.
+- Phase 3 robustness sweeps reuse the same seed as training and the GRU is not retrained per sweep, so they are diagnostic checks rather than fully independent benchmarks.
+- Phase 4 adaptive evaluation processes the flattened test set sequentially, so adaptation state carries across trajectory boundaries.
+- Phase 4 hybrid mode uses true test labels during inference for periodic recalibration; it is not a label-free deployment result.
 
 ### Figures
 
@@ -343,22 +350,22 @@ See [`requirements.txt`](requirements.txt) for the full list.
 
 ### 1. ML Decoders Learn What Models Miss
 
-The GRU decoder achieves competitive accuracy without knowing the underlying physics. When Hamiltonian dynamics (Phase 2) violate the Bayesian filter's assumptions, the GRU maintains performance by learning temporal patterns directly from data.
+The GRU decoder achieves competitive accuracy without knowing the underlying physics. Under Phase 2 dynamics, however, the Bayesian filter remains highly competitive and outperforms the final trained GRU in the recorded run, showing that model mismatch does not automatically imply Bayesian degradation.
 
-### 2. Non-Idealities Break Model-Based Approaches
+### 2. Non-Idealities Create Model Mismatch
 
-Phase 3 demonstrates that realistic hardware effects (colored noise, transients, random-walk drift) degrade all decoders, but especially the Bayesian filter whose white-noise and static-parameter assumptions are violated. This motivates data-driven approaches for real quantum hardware.
+Phase 3 demonstrates that non-ideal measurement effects (colored noise, transients, random-walk drift) create meaningful mismatch for idealized observation models. The combined held-out test favors the GRU, but Bayesian decoding remains competitive and sometimes wins in individual robustness sweeps. However, as the temporal correlations become more pronounced, the Bayesian filter’s memoryless assumptions become increasingly misspecified, while the GRU can exploit these dependencies through its learned temporal representation.
 
-### 3. Pure Self-Training Fails, But Hybrid Supervision Works
+### 3. Pure Self-Training Fails, Hybrid Needs Recalibration
 
-Phase 4 reveals that pure pseudo-label adaptation barely improves over static GRU — confident wrong predictions poison self-training under distribution shift. However, periodic recalibration (injecting true labels every 50-100 windows) combined with online adaptation maintains accuracy as hardware drifts. This "hybrid supervision" approach models realistic QEC where periodic state verification is available.
+Phase 4 reveals that pure pseudo-label adaptation substantially degrades performance: confident wrong predictions poison self-training under distribution shift. Hybrid adaptation gives a modest overall gain only with frequent true-label recalibration, and should be interpreted as an online supervised recalibration setting.
 
 ### 4. The Accuracy-Robustness Tradeoff
 
-- Bayesian filter: Highest accuracy when assumptions hold, but brittle to model mismatch
-- Static GRU: Robust to moderate non-idealities, but degrades under drift
-- Adaptive GRU (pseudo-labels): Barely helps — confident wrong predictions reinforce mistakes
-- Adaptive GRU (hybrid): Maintains performance under drift with minimal supervision overhead
+- Bayesian filter: Strong when assumptions approximately hold, and often competitive under moderate mismatch
+- Static GRU: Strong overall under drift, but accuracy declines in later temporal segments
+- Adaptive GRU (pseudo-labels): Degrades badly — confident wrong predictions reinforce mistakes
+- Adaptive GRU (hybrid): Modest overall gain with frequent true-label recalibration; not label-free and does not prevent late-segment degradation
 
 ---
 
