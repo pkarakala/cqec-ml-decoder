@@ -10,7 +10,7 @@
 
 This project placed 2nd at the UCSB Data Science Club Project Showcase (2026).
 
-[View Project Presentation](CQEC_Presentation.pdf)
+[View Project Presentation](CQEC-Presentation.pdf)
 
 ---
 
