@@ -14,8 +14,6 @@ This project placed 2nd at the UCSB Data Science Club Project Showcase (2026).
 
 ---
 
----
-
 ## The Problem
 
 Quantum computers are noisy. A 3-qubit repetition code protects information by encoding it across qubits (`|0⟩ₗ = |000⟩`, `|1⟩ₗ = |111⟩`), but you need to *continuously* monitor stabilizer measurements to catch bit-flip errors before they corrupt your computation.
