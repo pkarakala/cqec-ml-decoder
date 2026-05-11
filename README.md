@@ -6,6 +6,14 @@
 
 **Authors:** Pranav Reddy ([preddy@ucsb.edu](mailto:preddy@ucsb.edu)) · Clark Enge ([clarkenge@ucsb.edu](mailto:clarkenge@ucsb.edu)) · Aidan Mitchell ([aidanpmitchell@ucsb.edu](mailto:aidanpmitchell@ucsb.edu))
 
+## Showcase Presentation
+
+This project placed 2nd at the UCSB Data Science Club Project Showcase (2026).
+
+[View Project Presentation](CQEC_Presentation.pdf)
+
+---
+
 ---
 
 ## The Problem
